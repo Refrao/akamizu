@@ -580,6 +580,11 @@
 
   <!-- ═══════════════ REVISAR ═══════════════ -->
   <section id="revisar">
+    <div class="list-controls" style="margin-bottom:16px;">
+      <select id="review-materia-filtro" style="width:auto; min-width:200px;">
+        <option value="">Todas as matérias</option>
+      </select>
+    </div>
     <div id="review-container">
       <!-- populated by JS -->
     </div>
@@ -942,7 +947,21 @@ let reviewIndex = 0;
 
 function renderRevisar() {
   const erros = carregar();
-  reviewQueue = erros.filter(e => isDue(e.proxima_revisao));
+
+  // Popular dropdown com matérias que têm revisões devidas
+  const selectEl = document.getElementById('review-materia-filtro');
+  const currentFiltro = selectEl.value;
+  const materiasDevidas = [...new Set(
+    erros.filter(e => isDue(e.proxima_revisao)).map(e => e.materia).filter(Boolean)
+  )].sort();
+  selectEl.innerHTML = '<option value="">Todas as matérias</option>' +
+    materiasDevidas.map(m => `<option value="${esc(m)}" ${m === currentFiltro ? 'selected' : ''}>${esc(m)}</option>`).join('');
+
+  const filtro = selectEl.value;
+  let devidos = erros.filter(e => isDue(e.proxima_revisao));
+  if (filtro) devidos = devidos.filter(e => e.materia === filtro);
+
+  reviewQueue = devidos;
   reviewIndex = 0;
   renderCard();
 }
@@ -1132,6 +1151,7 @@ function renderLista() {
 
 document.getElementById('lista-busca').addEventListener('input', renderLista);
 document.getElementById('lista-materia-filtro').addEventListener('change', renderLista);
+document.getElementById('review-materia-filtro').addEventListener('change', renderRevisar);
 
 // ═══════════════════════════════════════════════
 // Modal Editar
