@@ -499,6 +499,7 @@
       <span id="badge-revisar" class="tab-badge hidden">0</span>
     </button>
     <button class="tab" data-tab="lista">Todos os Erros</button>
+    <button class="tab" data-tab="importar">Importar CSV</button>
   </div>
 </nav>
 
@@ -607,6 +608,73 @@
   </section>
 
 </main>
+
+  <!-- ═══════════════ IMPORTAR CSV ═══════════════ -->
+  <section id="importar">
+    <div class="card" style="margin-bottom:16px;">
+      <div class="section-title" style="margin-bottom:12px;">Formato esperado do CSV</div>
+      <p class="text-sm text-muted" style="margin-bottom:10px;">O arquivo deve ter cabeçalho na primeira linha com as colunas abaixo (os nomes são flexíveis — veja os aliases aceitos):</p>
+      <table class="erros-table" style="font-size:.8rem;">
+        <thead>
+          <tr><th>Coluna</th><th>Aliases aceitos</th><th>Obrigatório?</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>materia</code></td><td>materia, matéria, disciplina, subject</td><td>Sim</td></tr>
+          <tr><td><code>meu_erro</code></td><td>meu_erro, meu erro, minha_resposta, minha resposta, errei, resposta</td><td>Sim</td></tr>
+          <tr><td><code>gabarito</code></td><td>gabarito, resposta_correta, resposta correta, correto, correta</td><td>Sim</td></tr>
+          <tr><td><code>concurso</code></td><td>concurso, banca, prova, ano</td><td>Não</td></tr>
+          <tr><td><code>enunciado</code></td><td>enunciado, questao, questão, pergunta</td><td>Não</td></tr>
+          <tr><td><code>anotacoes</code></td><td>anotacoes, anotações, notas, observacao, observação</td><td>Não</td></tr>
+        </tbody>
+      </table>
+      <p class="text-sm text-muted" style="margin-top:10px;">Separador: vírgula <code>,</code> ou ponto-e-vírgula <code>;</code> (detectado automaticamente). Valores com vírgula devem estar entre aspas duplas.</p>
+    </div>
+
+    <div class="card" style="margin-bottom:16px;">
+      <div class="section-title" style="margin-bottom:12px;">Selecionar Arquivo</div>
+      <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+        <label class="btn btn-secondary" style="cursor:pointer;">
+          Escolher arquivo CSV
+          <input type="file" id="csv-file-input" accept=".csv,text/csv" style="display:none;">
+        </label>
+        <span id="csv-file-name" class="text-sm text-muted">Nenhum arquivo selecionado</span>
+      </div>
+    </div>
+
+    <div id="csv-preview-container" style="display:none;">
+      <div class="card" style="margin-bottom:16px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
+          <div class="section-title" style="margin-bottom:0;">Pré-visualização</div>
+          <span id="csv-preview-count" class="text-sm text-muted"></span>
+        </div>
+        <div id="csv-preview-errors" style="margin-bottom:10px;"></div>
+        <div style="overflow-x:auto;">
+          <table class="erros-table" id="csv-preview-table" style="font-size:.82rem;"></table>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:16px;">
+        <div class="section-title" style="margin-bottom:12px;">Opção de Importação</div>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <label style="display:flex; align-items:center; gap:8px; font-weight:400; cursor:pointer;">
+            <input type="radio" name="import-mode" value="append" checked>
+            <span><strong>Adicionar</strong> — mantém os erros existentes e adiciona os novos</span>
+          </label>
+          <label style="display:flex; align-items:center; gap:8px; font-weight:400; cursor:pointer;">
+            <input type="radio" name="import-mode" value="replace">
+            <span><strong>Substituir</strong> — apaga todos os erros existentes e importa apenas os do CSV</span>
+          </label>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" id="btn-confirmar-importacao">Importar <span id="csv-import-btn-count"></span> erros</button>
+      <button class="btn btn-secondary" id="btn-cancelar-importacao" style="margin-left:8px;">Cancelar</button>
+    </div>
+
+    <div id="csv-import-feedback" style="display:none;" class="card">
+      <!-- success/error message -->
+    </div>
+  </section>
 
 <!-- ═══════════════ MODAL EDITAR ═══════════════ -->
 <div class="modal-overlay" id="modal-overlay">
@@ -1223,6 +1291,191 @@ function excluir(id) {
   atualizarBadge();
   showToast('Erro excluído.');
 }
+
+// ═══════════════════════════════════════════════
+// Importar CSV
+// ═══════════════════════════════════════════════
+
+// Mapeamento de aliases para campos internos
+const CSV_ALIASES = {
+  materia:   ['materia', 'matéria', 'disciplina', 'subject'],
+  meu_erro:  ['meu_erro', 'meu erro', 'minha_resposta', 'minha resposta', 'errei', 'resposta'],
+  gabarito:  ['gabarito', 'resposta_correta', 'resposta correta', 'correto', 'correta'],
+  concurso:  ['concurso', 'banca', 'prova', 'ano'],
+  enunciado: ['enunciado', 'questao', 'questão', 'pergunta'],
+  anotacoes: ['anotacoes', 'anotações', 'notas', 'observacao', 'observação'],
+};
+
+function csvParseRow(line) {
+  // Suporta campos entre aspas duplas com vírgulas internas
+  const result = [];
+  let cur = '', inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (c === '"') {
+      if (inQuotes && line[i + 1] === '"') { cur += '"'; i++; }
+      else inQuotes = !inQuotes;
+    } else if ((c === ',' || c === ';') && !inQuotes) {
+      result.push(cur.trim()); cur = '';
+    } else {
+      cur += c;
+    }
+  }
+  result.push(cur.trim());
+  return result;
+}
+
+function csvDetectSeparator(line) {
+  const commas = (line.match(/,/g) || []).length;
+  const semis  = (line.match(/;/g) || []).length;
+  return semis > commas ? ';' : ',';
+}
+
+function csvMapHeaders(headers) {
+  // Retorna { campoInterno: índiceColuna } para cada campo reconhecido
+  const map = {};
+  headers.forEach((h, i) => {
+    const norm = h.toLowerCase().replace(/[_\s]+/g, ' ').trim();
+    for (const [field, aliases] of Object.entries(CSV_ALIASES)) {
+      if (aliases.includes(norm) || aliases.includes(h.toLowerCase())) {
+        if (!(field in map)) map[field] = i;
+      }
+    }
+  });
+  return map;
+}
+
+let csvLinhasParsed = []; // rows prontas para importar
+
+function parsearCSV(texto) {
+  const linhas = texto.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim());
+  if (linhas.length < 2) return { erros: ['O arquivo está vazio ou tem apenas o cabeçalho.'], rows: [] };
+
+  const sep = csvDetectSeparator(linhas[0]);
+  const headers = csvParseRow(linhas[0]);
+  const colMap = csvMapHeaders(headers);
+
+  const problemas = [];
+  if (!('materia'  in colMap)) problemas.push('Coluna de matéria não encontrada.');
+  if (!('meu_erro' in colMap)) problemas.push('Coluna de "meu erro" não encontrada.');
+  if (!('gabarito' in colMap)) problemas.push('Coluna de gabarito não encontrada.');
+  if (problemas.length) return { erros: problemas, rows: [] };
+
+  const rows = [];
+  const avisos = [];
+  for (let i = 1; i < linhas.length; i++) {
+    const cols = csvParseRow(linhas[i]);
+    const materia  = (cols[colMap.materia]  || '').trim();
+    const meu_erro = (cols[colMap.meu_erro] || '').trim();
+    const gabarito = (cols[colMap.gabarito] || '').trim();
+    if (!materia || !meu_erro || !gabarito) {
+      avisos.push(`Linha ${i + 1} ignorada: campos obrigatórios vazios.`);
+      continue;
+    }
+    rows.push({
+      id: uuid(),
+      materia,
+      meu_erro,
+      gabarito,
+      concurso:  colMap.concurso  != null ? (cols[colMap.concurso]  || '').trim() : '',
+      enunciado: colMap.enunciado != null ? (cols[colMap.enunciado] || '').trim() : '',
+      anotacoes: colMap.anotacoes != null ? (cols[colMap.anotacoes] || '').trim() : '',
+      criado_em: new Date().toISOString(),
+      proxima_revisao: hoje().toISOString(),
+      intervalo: 1, ease_factor: 2.5, repeticoes: 0,
+    });
+  }
+  return { erros: avisos, rows };
+}
+
+function renderPreviewCSV(rows, avisos) {
+  const container = document.getElementById('csv-preview-container');
+  const countEl   = document.getElementById('csv-preview-count');
+  const errorsEl  = document.getElementById('csv-preview-errors');
+  const tableEl   = document.getElementById('csv-preview-table');
+  const btnCount  = document.getElementById('csv-import-btn-count');
+
+  container.style.display = rows.length ? 'block' : 'none';
+
+  countEl.textContent = `${rows.length} linha(s) válida(s)`;
+  btnCount.textContent = rows.length;
+
+  errorsEl.innerHTML = avisos.length
+    ? avisos.map(a => `<div class="text-sm" style="color:var(--yellow);margin-bottom:4px;">⚠ ${esc(a)}</div>`).join('')
+    : '';
+
+  const preview = rows.slice(0, 5);
+  tableEl.innerHTML = `
+    <thead>
+      <tr>
+        <th>Matéria</th><th>Meu Erro</th><th>Gabarito</th><th>Concurso</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${preview.map(r => `
+        <tr>
+          <td>${esc(r.materia)}</td>
+          <td>${esc(r.meu_erro)}</td>
+          <td>${esc(r.gabarito)}</td>
+          <td>${esc(r.concurso)}</td>
+        </tr>`).join('')}
+      ${rows.length > 5 ? `<tr><td colspan="4" class="text-muted text-sm" style="text-align:center;">… e mais ${rows.length - 5} linha(s)</td></tr>` : ''}
+    </tbody>
+  `;
+}
+
+document.getElementById('csv-file-input').addEventListener('change', function () {
+  const file = this.files[0];
+  if (!file) return;
+  document.getElementById('csv-file-name').textContent = file.name;
+  document.getElementById('csv-import-feedback').style.display = 'none';
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    const { erros, rows } = parsearCSV(e.target.result);
+    csvLinhasParsed = rows;
+
+    if (erros.length && rows.length === 0) {
+      // Erros fatais
+      document.getElementById('csv-preview-container').style.display = 'none';
+      const fb = document.getElementById('csv-import-feedback');
+      fb.style.display = 'block';
+      fb.innerHTML = erros.map(er => `<div style="color:var(--red);">✗ ${esc(er)}</div>`).join('');
+      return;
+    }
+    renderPreviewCSV(rows, erros);
+  };
+  reader.readAsText(file, 'UTF-8');
+});
+
+document.getElementById('btn-cancelar-importacao').addEventListener('click', () => {
+  document.getElementById('csv-file-input').value = '';
+  document.getElementById('csv-file-name').textContent = 'Nenhum arquivo selecionado';
+  document.getElementById('csv-preview-container').style.display = 'none';
+  document.getElementById('csv-import-feedback').style.display = 'none';
+  csvLinhasParsed = [];
+});
+
+document.getElementById('btn-confirmar-importacao').addEventListener('click', () => {
+  if (!csvLinhasParsed.length) return;
+  const mode = document.querySelector('input[name="import-mode"]:checked').value;
+  const existentes = mode === 'replace' ? [] : carregar();
+  salvar([...existentes, ...csvLinhasParsed]);
+
+  const total = csvLinhasParsed.length;
+  csvLinhasParsed = [];
+  document.getElementById('csv-file-input').value = '';
+  document.getElementById('csv-file-name').textContent = 'Nenhum arquivo selecionado';
+  document.getElementById('csv-preview-container').style.display = 'none';
+
+  const fb = document.getElementById('csv-import-feedback');
+  fb.style.display = 'block';
+  fb.innerHTML = `<div style="color:var(--green);font-weight:600;">✓ ${total} erro(s) importado(s) com sucesso!</div>`;
+
+  atualizarBadge();
+  atualizarDatalist();
+  showToast(`${total} erros importados!`);
+});
 
 // ═══════════════════════════════════════════════
 // Init
