@@ -1200,6 +1200,7 @@ function renderLista() {
               <td class="${dateClass}">${formatDateShort(e.proxima_revisao)}</td>
               <td>
                 <div class="td-actions">
+                  ${!isDue(e.proxima_revisao) ? `<button class="btn btn-sm btn-secondary btn-revisar-hoje" data-id="${esc(e.id)}" title="Mover para revisão de hoje">Revisar hoje</button>` : ''}
                   <button class="btn btn-sm btn-secondary btn-editar" data-id="${esc(e.id)}">Editar</button>
                   <button class="btn btn-sm btn-danger btn-excluir" data-id="${esc(e.id)}">Excluir</button>
                 </div>
@@ -1211,10 +1212,24 @@ function renderLista() {
     </table>
   `;
 
+  el.querySelectorAll('.btn-revisar-hoje').forEach(btn =>
+    btn.addEventListener('click', () => revisarHoje(btn.dataset.id)));
   el.querySelectorAll('.btn-editar').forEach(btn =>
     btn.addEventListener('click', () => abrirModal(btn.dataset.id)));
   el.querySelectorAll('.btn-excluir').forEach(btn =>
     btn.addEventListener('click', () => excluir(btn.dataset.id)));
+}
+
+function revisarHoje(id) {
+  const erros = carregar();
+  const idx = erros.findIndex(e => e.id === id);
+  if (idx !== -1) {
+    erros[idx].proxima_revisao = hoje().toISOString();
+    salvar(erros);
+    renderLista();
+    atualizarBadge();
+    showToast('Card movido para revisão de hoje!');
+  }
 }
 
 document.getElementById('lista-busca').addEventListener('input', renderLista);
