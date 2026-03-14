@@ -1,0 +1,1219 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Revisão de Erros — Concursos</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --blue: #3B82F6;
+      --blue-light: #EFF6FF;
+      --blue-dark: #1D4ED8;
+      --red: #EF4444;
+      --red-light: #FEF2F2;
+      --green: #22C55E;
+      --green-light: #F0FDF4;
+      --yellow: #F59E0B;
+      --yellow-light: #FFFBEB;
+      --gray-50: #F9FAFB;
+      --gray-100: #F3F4F6;
+      --gray-200: #E5E7EB;
+      --gray-400: #9CA3AF;
+      --gray-600: #4B5563;
+      --gray-800: #1F2937;
+      --radius: 8px;
+      --shadow: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06);
+      --shadow-md: 0 4px 6px rgba(0,0,0,.07), 0 2px 4px rgba(0,0,0,.06);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--gray-50);
+      color: var(--gray-800);
+      min-height: 100vh;
+      padding-bottom: 80px;
+    }
+
+    /* ── Header ── */
+    header {
+      background: #fff;
+      border-bottom: 1px solid var(--gray-200);
+      padding: 0 16px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header-inner {
+      max-width: 900px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      height: 56px;
+    }
+    .logo { font-weight: 700; font-size: 1rem; color: var(--blue); letter-spacing: -.3px; }
+    .logo span { color: var(--gray-600); font-weight: 400; }
+
+    /* ── Nav Tabs ── */
+    nav {
+      background: #fff;
+      border-bottom: 1px solid var(--gray-200);
+    }
+    .nav-inner {
+      max-width: 900px;
+      margin: 0 auto;
+      display: flex;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .tab {
+      flex: none;
+      padding: 12px 20px;
+      font-size: .875rem;
+      font-weight: 500;
+      color: var(--gray-600);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      white-space: nowrap;
+      transition: color .15s, border-color .15s;
+      background: none;
+      border-top: none;
+      border-left: none;
+      border-right: none;
+    }
+    .tab:hover { color: var(--blue); }
+    .tab.active { color: var(--blue); border-bottom-color: var(--blue); }
+    .tab-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--red);
+      color: #fff;
+      font-size: .7rem;
+      font-weight: 700;
+      min-width: 18px;
+      height: 18px;
+      border-radius: 9px;
+      padding: 0 5px;
+      margin-left: 6px;
+    }
+    .tab-badge.hidden { display: none; }
+
+    /* ── Main ── */
+    main {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 24px 16px;
+    }
+    section { display: none; }
+    section.active { display: block; }
+
+    /* ── Cards / Boxes ── */
+    .card {
+      background: #fff;
+      border: 1px solid var(--gray-200);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 20px;
+    }
+    .card + .card { margin-top: 16px; }
+
+    /* ── Dashboard ── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .stat-card {
+      background: #fff;
+      border: 1px solid var(--gray-200);
+      border-radius: var(--radius);
+      padding: 16px;
+      box-shadow: var(--shadow);
+    }
+    .stat-value { font-size: 2rem; font-weight: 700; line-height: 1; margin-bottom: 4px; }
+    .stat-label { font-size: .8rem; color: var(--gray-600); }
+    .stat-card.highlight { background: var(--blue); border-color: var(--blue-dark); }
+    .stat-card.highlight .stat-value,
+    .stat-card.highlight .stat-label { color: #fff; }
+
+    .section-title {
+      font-size: .9rem;
+      font-weight: 600;
+      color: var(--gray-600);
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      margin-bottom: 12px;
+    }
+
+    /* Bar chart */
+    .bar-chart { display: flex; flex-direction: column; gap: 8px; }
+    .bar-row { display: flex; align-items: center; gap: 8px; font-size: .875rem; }
+    .bar-label { width: 160px; flex: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--gray-800); }
+    .bar-track { flex: 1; background: var(--gray-100); border-radius: 4px; height: 20px; overflow: hidden; }
+    .bar-fill { height: 100%; background: var(--blue); border-radius: 4px; transition: width .4s ease; }
+    .bar-count { flex: none; font-size: .8rem; color: var(--gray-600); min-width: 24px; text-align: right; }
+
+    /* Upcoming list */
+    .upcoming-list { display: flex; flex-direction: column; gap: 8px; }
+    .upcoming-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      background: var(--gray-50);
+      border: 1px solid var(--gray-200);
+      border-radius: 6px;
+      font-size: .875rem;
+    }
+    .upcoming-date {
+      flex: none;
+      font-size: .75rem;
+      font-weight: 600;
+      color: var(--blue);
+      background: var(--blue-light);
+      padding: 2px 8px;
+      border-radius: 20px;
+    }
+    .upcoming-materia { font-weight: 500; }
+    .upcoming-info { color: var(--gray-600); font-size: .8rem; }
+
+    /* ── Form ── */
+    .form-group { margin-bottom: 16px; }
+    label {
+      display: block;
+      font-size: .875rem;
+      font-weight: 500;
+      margin-bottom: 6px;
+      color: var(--gray-800);
+    }
+    label .required { color: var(--red); margin-left: 2px; }
+    label .optional { color: var(--gray-400); font-weight: 400; font-size: .8rem; margin-left: 4px; }
+    input[type="text"], textarea, select {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid var(--gray-200);
+      border-radius: 6px;
+      font-size: .9rem;
+      font-family: inherit;
+      color: var(--gray-800);
+      background: #fff;
+      transition: border-color .15s, box-shadow .15s;
+      outline: none;
+    }
+    input[type="text"]:focus, textarea:focus, select:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(59,130,246,.15);
+    }
+    textarea { resize: vertical; min-height: 72px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    /* Datalist suggestion */
+    #materia-input { position: relative; }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 9px 18px;
+      border-radius: 6px;
+      font-size: .875rem;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      transition: background .15s, transform .1s;
+      font-family: inherit;
+    }
+    .btn:active { transform: scale(.98); }
+    .btn-primary { background: var(--blue); color: #fff; }
+    .btn-primary:hover { background: var(--blue-dark); }
+    .btn-secondary { background: var(--gray-100); color: var(--gray-800); border: 1px solid var(--gray-200); }
+    .btn-secondary:hover { background: var(--gray-200); }
+    .btn-danger { background: var(--red-light); color: var(--red); border: 1px solid #FCA5A5; }
+    .btn-danger:hover { background: #FEE2E2; }
+    .btn-sm { padding: 5px 10px; font-size: .8rem; }
+    .btn-full { width: 100%; justify-content: center; }
+
+    /* Rating buttons */
+    .rating-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 16px;
+    }
+    .btn-rating {
+      padding: 14px 10px;
+      border-radius: 8px;
+      font-size: .9rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: all .15s;
+      font-family: inherit;
+      text-align: center;
+    }
+    .btn-rating:active { transform: scale(.97); }
+    .rating-0 { background: var(--red-light); color: var(--red); border-color: #FCA5A5; }
+    .rating-0:hover { background: #FEE2E2; }
+    .rating-1 { background: var(--yellow-light); color: #92400E; border-color: #FCD34D; }
+    .rating-1:hover { background: #FEF3C7; }
+    .rating-2 { background: var(--blue-light); color: var(--blue-dark); border-color: #93C5FD; }
+    .rating-2:hover { background: #DBEAFE; }
+    .rating-3 { background: var(--green-light); color: #15803D; border-color: #86EFAC; }
+    .rating-3:hover { background: #DCFCE7; }
+
+    /* ── Review ── */
+    .review-progress {
+      font-size: .85rem;
+      color: var(--gray-600);
+      margin-bottom: 16px;
+      text-align: center;
+    }
+    .progress-bar {
+      background: var(--gray-200);
+      border-radius: 4px;
+      height: 6px;
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: var(--blue);
+      border-radius: 4px;
+      transition: width .3s ease;
+    }
+    .review-card {
+      background: #fff;
+      border: 1px solid var(--gray-200);
+      border-radius: 12px;
+      box-shadow: var(--shadow-md);
+      overflow: hidden;
+    }
+    .card-front { padding: 24px; }
+    .card-back {
+      border-top: 1px solid var(--gray-200);
+      background: var(--gray-50);
+      padding: 20px;
+      display: none;
+    }
+    .card-back.visible { display: block; }
+    .card-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: .75rem;
+      font-weight: 600;
+    }
+    .badge-blue { background: var(--blue-light); color: var(--blue-dark); }
+    .badge-gray { background: var(--gray-100); color: var(--gray-600); }
+    .card-enunciado {
+      font-size: .95rem;
+      line-height: 1.6;
+      color: var(--gray-800);
+      margin-bottom: 16px;
+      white-space: pre-wrap;
+    }
+    .card-enunciado.placeholder { color: var(--gray-400); font-style: italic; }
+    .answer-label {
+      font-size: .75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      margin-bottom: 4px;
+    }
+    .answer-correct { color: var(--green); margin-bottom: 12px; }
+    .answer-wrong { color: var(--red); margin-bottom: 12px; }
+    .answer-text {
+      font-size: .95rem;
+      line-height: 1.5;
+      padding: 10px 14px;
+      border-radius: 6px;
+      white-space: pre-wrap;
+    }
+    .answer-correct .answer-text { background: var(--green-light); color: #14532D; }
+    .answer-wrong .answer-text { background: var(--red-light); color: #7F1D1D; }
+    .answer-notes { color: var(--gray-600); margin-top: 12px; }
+    .answer-notes .answer-text { background: var(--gray-100); color: var(--gray-800); font-style: italic; }
+
+    .review-empty {
+      text-align: center;
+      padding: 48px 24px;
+      color: var(--gray-600);
+    }
+    .review-empty .icon { font-size: 3rem; margin-bottom: 12px; }
+    .review-empty h3 { font-size: 1.1rem; margin-bottom: 8px; color: var(--gray-800); }
+    .review-empty p { font-size: .9rem; line-height: 1.5; }
+
+    /* ── Lista ── */
+    .list-controls {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .list-controls input[type="text"] { flex: 1; min-width: 180px; }
+    .list-controls select { width: auto; }
+
+    .list-empty {
+      text-align: center;
+      padding: 40px;
+      color: var(--gray-400);
+    }
+
+    .erros-table { width: 100%; border-collapse: collapse; }
+    .erros-table th {
+      background: var(--gray-50);
+      padding: 10px 12px;
+      text-align: left;
+      font-size: .8rem;
+      font-weight: 600;
+      color: var(--gray-600);
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      border-bottom: 2px solid var(--gray-200);
+    }
+    .erros-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--gray-100);
+      font-size: .875rem;
+      vertical-align: top;
+    }
+    .erros-table tr:last-child td { border-bottom: none; }
+    .erros-table tr:hover td { background: var(--gray-50); }
+    .td-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+    .overdue { color: var(--red); font-weight: 600; }
+    .today { color: var(--yellow); font-weight: 600; }
+    .arrow { color: var(--gray-400); margin: 0 4px; }
+
+    /* ── Modal ── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.4);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .modal-overlay.visible { display: flex; }
+    .modal {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.2);
+      width: 100%;
+      max-width: 560px;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--gray-200);
+    }
+    .modal-header h2 { font-size: 1rem; font-weight: 600; }
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 1.2rem;
+      cursor: pointer;
+      color: var(--gray-400);
+      padding: 4px;
+      line-height: 1;
+    }
+    .modal-close:hover { color: var(--gray-800); }
+    .modal-body { padding: 20px; }
+    .modal-footer {
+      padding: 12px 20px;
+      border-top: 1px solid var(--gray-200);
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--gray-800);
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: .875rem;
+      font-weight: 500;
+      opacity: 0;
+      transition: opacity .25s, transform .25s;
+      z-index: 300;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* ── Utilities ── */
+    .flex { display: flex; }
+    .flex-col { flex-direction: column; }
+    .gap-8 { gap: 8px; }
+    .mt-8 { margin-top: 8px; }
+    .mt-16 { margin-top: 16px; }
+    .mt-24 { margin-top: 24px; }
+    .text-sm { font-size: .875rem; }
+    .text-muted { color: var(--gray-600); }
+
+    @media (max-width: 640px) {
+      .form-row { grid-template-columns: 1fr; }
+      .stats-grid { grid-template-columns: 1fr 1fr; }
+      .rating-grid { grid-template-columns: 1fr 1fr; }
+      .erros-table { display: block; overflow-x: auto; }
+      .bar-label { width: 100px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="logo">akamizu <span>/ erros</span></div>
+  </div>
+</header>
+
+<nav>
+  <div class="nav-inner">
+    <button class="tab active" data-tab="dashboard">Dashboard</button>
+    <button class="tab" data-tab="adicionar">Adicionar Erro</button>
+    <button class="tab" data-tab="revisar">
+      Revisar
+      <span id="badge-revisar" class="tab-badge hidden">0</span>
+    </button>
+    <button class="tab" data-tab="lista">Todos os Erros</button>
+  </div>
+</nav>
+
+<main>
+
+  <!-- ═══════════════ DASHBOARD ═══════════════ -->
+  <section id="dashboard" class="active">
+    <div class="stats-grid" id="stats-grid">
+      <!-- populated by JS -->
+    </div>
+
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 16px;" id="dash-grid">
+      <div class="card" id="card-materias">
+        <div class="section-title">Erros por Matéria</div>
+        <div class="bar-chart" id="bar-chart-materias">
+          <div class="list-empty text-sm text-muted">Nenhum erro cadastrado.</div>
+        </div>
+      </div>
+
+      <div class="card" id="card-upcoming">
+        <div class="section-title">Próximas Revisões</div>
+        <div class="upcoming-list" id="upcoming-list">
+          <div class="list-empty text-sm text-muted">Nenhuma revisão agendada.</div>
+        </div>
+      </div>
+    </div>
+
+    <style>
+      @media (max-width: 640px) { #dash-grid { grid-template-columns: 1fr !important; } }
+    </style>
+  </section>
+
+  <!-- ═══════════════ ADICIONAR ═══════════════ -->
+  <section id="adicionar">
+    <div class="card">
+      <div class="section-title" style="margin-bottom:20px;">Registrar Novo Erro</div>
+      <form id="form-erro" novalidate>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Matéria <span class="required">*</span></label>
+            <input type="text" id="input-materia" placeholder="Ex: Direito Constitucional" list="datalist-materias" autocomplete="off" required>
+            <datalist id="datalist-materias"></datalist>
+          </div>
+          <div class="form-group">
+            <label>Concurso / Ano <span class="optional">(opcional)</span></label>
+            <input type="text" id="input-concurso" placeholder="Ex: CESPE 2024">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Enunciado da Questão <span class="optional">(opcional)</span></label>
+          <textarea id="input-enunciado" placeholder="Cole ou escreva o enunciado da questão…" rows="4"></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>O que eu respondi <span class="required">*</span></label>
+            <input type="text" id="input-meu-erro" placeholder="Ex: Alternativa C" required>
+          </div>
+          <div class="form-group">
+            <label>Gabarito (resposta correta) <span class="required">*</span></label>
+            <input type="text" id="input-gabarito" placeholder="Ex: Alternativa A" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Anotações <span class="optional">(opcional)</span></label>
+          <textarea id="input-anotacoes" placeholder="Por que errei? O que devo revisar?" rows="3"></textarea>
+        </div>
+
+        <div style="display:flex; gap:8px; justify-content:flex-end;">
+          <button type="button" class="btn btn-secondary" id="btn-limpar">Limpar</button>
+          <button type="submit" class="btn btn-primary">Salvar Erro</button>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <!-- ═══════════════ REVISAR ═══════════════ -->
+  <section id="revisar">
+    <div id="review-container">
+      <!-- populated by JS -->
+    </div>
+  </section>
+
+  <!-- ═══════════════ LISTA ═══════════════ -->
+  <section id="lista">
+    <div class="list-controls">
+      <input type="text" id="lista-busca" placeholder="Buscar em todos os campos…">
+      <select id="lista-materia-filtro">
+        <option value="">Todas as matérias</option>
+      </select>
+    </div>
+
+    <div class="card" style="padding:0; overflow:hidden;">
+      <div id="lista-content">
+        <!-- populated by JS -->
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ═══════════════ MODAL EDITAR ═══════════════ -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Editar Erro</h2>
+      <button class="modal-close" id="modal-close-btn">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="edit-id">
+      <div class="form-group">
+        <label>Matéria <span class="required">*</span></label>
+        <input type="text" id="edit-materia" list="datalist-materias" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label>Concurso / Ano</label>
+        <input type="text" id="edit-concurso">
+      </div>
+      <div class="form-group">
+        <label>Enunciado</label>
+        <textarea id="edit-enunciado" rows="4"></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>O que eu respondi <span class="required">*</span></label>
+          <input type="text" id="edit-meu-erro">
+        </div>
+        <div class="form-group">
+          <label>Gabarito <span class="required">*</span></label>
+          <input type="text" id="edit-gabarito">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Anotações</label>
+        <textarea id="edit-anotacoes" rows="3"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="modal-cancel-btn">Cancelar</button>
+      <button class="btn btn-primary" id="modal-save-btn">Salvar Alterações</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+
+// ═══════════════════════════════════════════════
+// Helpers
+// ═══════════════════════════════════════════════
+
+function uuid() {
+  return crypto.randomUUID
+    ? crypto.randomUUID()
+    : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+        const r = Math.random() * 16 | 0;
+        return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+      });
+}
+
+function hoje() {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function addDays(date, days) {
+  const d = new Date(date);
+  d.setDate(d.getDate() + days);
+  return d;
+}
+
+function parseDate(str) {
+  const d = new Date(str);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function formatDate(str) {
+  const d = parseDate(str);
+  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+function formatDateShort(str) {
+  const d = parseDate(str);
+  const h = hoje();
+  const diff = Math.round((d - h) / 86400000);
+  if (diff === 0) return 'Hoje';
+  if (diff === 1) return 'Amanhã';
+  if (diff === -1) return 'Ontem';
+  if (diff < 0) return `${Math.abs(diff)}d atrás`;
+  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+}
+
+function isOverdue(str) {
+  return parseDate(str) < hoje();
+}
+
+function isToday(str) {
+  return parseDate(str).getTime() === hoje().getTime();
+}
+
+function isDue(str) {
+  return parseDate(str) <= hoje();
+}
+
+function esc(s) {
+  return String(s || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// ═══════════════════════════════════════════════
+// Storage
+// ═══════════════════════════════════════════════
+
+const STORAGE_KEY = 'akamizu_erros';
+
+function carregar() {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+  } catch { return []; }
+}
+
+function salvar(erros) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(erros));
+}
+
+// ═══════════════════════════════════════════════
+// SM-2
+// ═══════════════════════════════════════════════
+
+function sm2(card, rating) {
+  // rating: 0=Errei de novo, 1=Difícil, 2=OK, 3=Fácil
+  let { intervalo, ease_factor, repeticoes } = card;
+
+  if (rating <= 1) {
+    repeticoes = 0;
+    intervalo = 1;
+    ease_factor = Math.max(1.3, ease_factor - (rating === 0 ? 0.2 : 0.15));
+  } else {
+    if (repeticoes === 0)      intervalo = 1;
+    else if (repeticoes === 1) intervalo = 6;
+    else                       intervalo = Math.round(intervalo * ease_factor);
+    repeticoes += 1;
+    if (rating === 3) ease_factor = Math.min(3.0, ease_factor + 0.1);
+  }
+
+  const proxima = addDays(hoje(), intervalo);
+
+  return {
+    ...card,
+    intervalo,
+    ease_factor,
+    repeticoes,
+    proxima_revisao: proxima.toISOString(),
+  };
+}
+
+// ═══════════════════════════════════════════════
+// Router / Tabs
+// ═══════════════════════════════════════════════
+
+function mostrarAba(aba) {
+  document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(aba).classList.add('active');
+  document.querySelector(`.tab[data-tab="${aba}"]`).classList.add('active');
+
+  if (aba === 'dashboard') renderDashboard();
+  if (aba === 'revisar') renderRevisar();
+  if (aba === 'lista') renderLista();
+  if (aba === 'adicionar') atualizarDatalist();
+}
+
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => mostrarAba(tab.dataset.tab));
+});
+
+// ═══════════════════════════════════════════════
+// Dashboard
+// ═══════════════════════════════════════════════
+
+function renderDashboard() {
+  const erros = carregar();
+  const hoje_ = hoje();
+
+  const devidos = erros.filter(e => isDue(e.proxima_revisao));
+  const porMateria = {};
+  erros.forEach(e => {
+    const m = e.materia || '(sem matéria)';
+    porMateria[m] = (porMateria[m] || 0) + 1;
+  });
+
+  // Stats
+  const statsGrid = document.getElementById('stats-grid');
+  statsGrid.innerHTML = `
+    <div class="stat-card highlight">
+      <div class="stat-value">${devidos.length}</div>
+      <div class="stat-label">Para revisar hoje</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">${erros.length}</div>
+      <div class="stat-label">Erros cadastrados</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">${Object.keys(porMateria).length}</div>
+      <div class="stat-label">Matérias</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">${erros.filter(e => !isDue(e.proxima_revisao)).length}</div>
+      <div class="stat-label">Revisados ✓</div>
+    </div>
+  `;
+
+  // Bar chart
+  const barEl = document.getElementById('bar-chart-materias');
+  const sorted = Object.entries(porMateria).sort((a, b) => b[1] - a[1]).slice(0, 8);
+  const max = sorted[0]?.[1] || 1;
+
+  if (sorted.length === 0) {
+    barEl.innerHTML = '<div class="list-empty text-sm text-muted">Nenhum erro cadastrado.</div>';
+  } else {
+    barEl.innerHTML = sorted.map(([m, n]) => `
+      <div class="bar-row">
+        <div class="bar-label" title="${esc(m)}">${esc(m)}</div>
+        <div class="bar-track">
+          <div class="bar-fill" style="width:${Math.round(n / max * 100)}%"></div>
+        </div>
+        <div class="bar-count">${n}</div>
+      </div>
+    `).join('');
+  }
+
+  // Upcoming
+  const upEl = document.getElementById('upcoming-list');
+  const futuras = erros
+    .filter(e => !isDue(e.proxima_revisao))
+    .sort((a, b) => new Date(a.proxima_revisao) - new Date(b.proxima_revisao))
+    .slice(0, 5);
+
+  if (futuras.length === 0) {
+    upEl.innerHTML = '<div class="list-empty text-sm text-muted">Nenhuma revisão futura agendada.</div>';
+  } else {
+    upEl.innerHTML = futuras.map(e => `
+      <div class="upcoming-item">
+        <span class="upcoming-date">${formatDateShort(e.proxima_revisao)}</span>
+        <div>
+          <div class="upcoming-materia">${esc(e.materia)}</div>
+          ${e.concurso ? `<div class="upcoming-info">${esc(e.concurso)}</div>` : ''}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // Badge
+  atualizarBadge();
+}
+
+function atualizarBadge() {
+  const erros = carregar();
+  const n = erros.filter(e => isDue(e.proxima_revisao)).length;
+  const badge = document.getElementById('badge-revisar');
+  badge.textContent = n;
+  badge.classList.toggle('hidden', n === 0);
+}
+
+// ═══════════════════════════════════════════════
+// Adicionar Erro
+// ═══════════════════════════════════════════════
+
+function atualizarDatalist() {
+  const erros = carregar();
+  const materias = [...new Set(erros.map(e => e.materia).filter(Boolean))].sort();
+  const dl = document.getElementById('datalist-materias');
+  dl.innerHTML = materias.map(m => `<option value="${esc(m)}">`).join('');
+}
+
+document.getElementById('form-erro').addEventListener('submit', e => {
+  e.preventDefault();
+
+  const materia = document.getElementById('input-materia').value.trim();
+  const meuErro = document.getElementById('input-meu-erro').value.trim();
+  const gabarito = document.getElementById('input-gabarito').value.trim();
+
+  if (!materia || !meuErro || !gabarito) {
+    showToast('Preencha os campos obrigatórios (*)');
+    return;
+  }
+
+  const novoErro = {
+    id: uuid(),
+    materia,
+    concurso: document.getElementById('input-concurso').value.trim(),
+    enunciado: document.getElementById('input-enunciado').value.trim(),
+    meu_erro: meuErro,
+    gabarito,
+    anotacoes: document.getElementById('input-anotacoes').value.trim(),
+    criado_em: new Date().toISOString(),
+    proxima_revisao: hoje().toISOString(),
+    intervalo: 1,
+    ease_factor: 2.5,
+    repeticoes: 0,
+  };
+
+  const erros = carregar();
+  erros.push(novoErro);
+  salvar(erros);
+
+  document.getElementById('form-erro').reset();
+  atualizarDatalist();
+  atualizarBadge();
+  showToast('Erro cadastrado!');
+});
+
+document.getElementById('btn-limpar').addEventListener('click', () => {
+  document.getElementById('form-erro').reset();
+});
+
+// ═══════════════════════════════════════════════
+// Revisar
+// ═══════════════════════════════════════════════
+
+let reviewQueue = [];
+let reviewIndex = 0;
+
+function renderRevisar() {
+  const erros = carregar();
+  reviewQueue = erros.filter(e => isDue(e.proxima_revisao));
+  reviewIndex = 0;
+  renderCard();
+}
+
+function renderCard() {
+  const container = document.getElementById('review-container');
+  const total = reviewQueue.length;
+
+  if (total === 0) {
+    const erros = carregar();
+    const proxima = erros
+      .filter(e => !isDue(e.proxima_revisao))
+      .sort((a, b) => new Date(a.proxima_revisao) - new Date(b.proxima_revisao))[0];
+
+    container.innerHTML = `
+      <div class="review-empty">
+        <div class="icon">🎉</div>
+        <h3>Nenhuma revisão pendente!</h3>
+        <p class="text-muted">
+          ${proxima
+            ? `Sua próxima revisão é em <strong>${formatDateShort(proxima.proxima_revisao)}</strong> — <em>${esc(proxima.materia)}</em>.`
+            : 'Cadastre erros na aba "Adicionar Erro" para começar.'}
+        </p>
+      </div>
+    `;
+    return;
+  }
+
+  const done = reviewIndex;
+  const pct = Math.round(done / total * 100);
+  const card = reviewQueue[reviewIndex];
+
+  container.innerHTML = `
+    <div class="review-progress">${done} de ${total} questões para hoje</div>
+    <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+
+    <div class="review-card">
+      <div class="card-front">
+        <div class="card-meta">
+          <span class="badge badge-blue">${esc(card.materia)}</span>
+          ${card.concurso ? `<span class="badge badge-gray">${esc(card.concurso)}</span>` : ''}
+        </div>
+        <div class="card-enunciado ${card.enunciado ? '' : 'placeholder'}">
+          ${card.enunciado ? esc(card.enunciado) : 'Nenhum enunciado cadastrado para esta questão.'}
+        </div>
+        <button class="btn btn-primary btn-full" id="btn-ver-resposta">Ver Resposta</button>
+      </div>
+
+      <div class="card-back" id="card-back">
+        <div class="answer-correct">
+          <div class="answer-label">Resposta Correta</div>
+          <div class="answer-text">${esc(card.gabarito)}</div>
+        </div>
+        <div class="answer-wrong">
+          <div class="answer-label">O que eu respondi</div>
+          <div class="answer-text">${esc(card.meu_erro)}</div>
+        </div>
+        ${card.anotacoes ? `
+        <div class="answer-notes">
+          <div class="answer-label" style="color:var(--gray-600)">Anotações</div>
+          <div class="answer-text">${esc(card.anotacoes)}</div>
+        </div>` : ''}
+
+        <div class="rating-grid">
+          <button class="btn-rating rating-0" data-rating="0">😵 Errei de novo</button>
+          <button class="btn-rating rating-1" data-rating="1">😟 Difícil</button>
+          <button class="btn-rating rating-2" data-rating="2">🙂 OK</button>
+          <button class="btn-rating rating-3" data-rating="3">😄 Fácil</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('btn-ver-resposta').addEventListener('click', () => {
+    document.getElementById('card-back').classList.add('visible');
+    document.getElementById('btn-ver-resposta').style.display = 'none';
+  });
+
+  container.querySelectorAll('.btn-rating').forEach(btn => {
+    btn.addEventListener('click', () => avaliarCard(parseInt(btn.dataset.rating)));
+  });
+}
+
+function avaliarCard(rating) {
+  const card = reviewQueue[reviewIndex];
+  const erros = carregar();
+  const idx = erros.findIndex(e => e.id === card.id);
+  if (idx !== -1) {
+    erros[idx] = sm2(erros[idx], rating);
+    salvar(erros);
+  }
+  reviewIndex++;
+  if (reviewIndex >= reviewQueue.length) {
+    reviewQueue = [];
+    reviewIndex = 0;
+  }
+  atualizarBadge();
+  renderCard();
+}
+
+// ═══════════════════════════════════════════════
+// Lista
+// ═══════════════════════════════════════════════
+
+function renderLista() {
+  const busca = (document.getElementById('lista-busca').value || '').toLowerCase();
+  const materiaFiltro = document.getElementById('lista-materia-filtro').value;
+  let erros = carregar();
+
+  // Atualizar dropdown
+  const materias = [...new Set(erros.map(e => e.materia).filter(Boolean))].sort();
+  const select = document.getElementById('lista-materia-filtro');
+  const current = select.value;
+  select.innerHTML = '<option value="">Todas as matérias</option>' +
+    materias.map(m => `<option value="${esc(m)}" ${m === current ? 'selected' : ''}>${esc(m)}</option>`).join('');
+
+  // Filtrar
+  if (materiaFiltro) erros = erros.filter(e => e.materia === materiaFiltro);
+  if (busca) {
+    erros = erros.filter(e =>
+      [e.materia, e.concurso, e.enunciado, e.meu_erro, e.gabarito, e.anotacoes]
+        .some(f => (f || '').toLowerCase().includes(busca))
+    );
+  }
+
+  // Ordenar: devidos primeiro, depois por data
+  erros.sort((a, b) => {
+    const dueA = isDue(a.proxima_revisao) ? 0 : 1;
+    const dueB = isDue(b.proxima_revisao) ? 0 : 1;
+    if (dueA !== dueB) return dueA - dueB;
+    return new Date(a.proxima_revisao) - new Date(b.proxima_revisao);
+  });
+
+  const el = document.getElementById('lista-content');
+
+  if (erros.length === 0) {
+    el.innerHTML = '<div class="list-empty text-muted">Nenhum erro encontrado.</div>';
+    return;
+  }
+
+  el.innerHTML = `
+    <table class="erros-table">
+      <thead>
+        <tr>
+          <th>Matéria / Concurso</th>
+          <th>Erro → Gabarito</th>
+          <th>Próxima Revisão</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${erros.map(e => {
+          const due = isDue(e.proxima_revisao);
+          const ov = isOverdue(e.proxima_revisao);
+          const td_ = isToday(e.proxima_revisao);
+          const dateClass = ov ? 'overdue' : td_ ? 'today' : '';
+          return `
+            <tr>
+              <td>
+                <strong>${esc(e.materia)}</strong>
+                ${e.concurso ? `<br><span class="text-muted text-sm">${esc(e.concurso)}</span>` : ''}
+              </td>
+              <td>
+                <span style="color:var(--red)">${esc(e.meu_erro)}</span>
+                <span class="arrow">→</span>
+                <span style="color:var(--green)">${esc(e.gabarito)}</span>
+              </td>
+              <td class="${dateClass}">${formatDateShort(e.proxima_revisao)}</td>
+              <td>
+                <div class="td-actions">
+                  <button class="btn btn-sm btn-secondary btn-editar" data-id="${esc(e.id)}">Editar</button>
+                  <button class="btn btn-sm btn-danger btn-excluir" data-id="${esc(e.id)}">Excluir</button>
+                </div>
+              </td>
+            </tr>
+          `;
+        }).join('')}
+      </tbody>
+    </table>
+  `;
+
+  el.querySelectorAll('.btn-editar').forEach(btn =>
+    btn.addEventListener('click', () => abrirModal(btn.dataset.id)));
+  el.querySelectorAll('.btn-excluir').forEach(btn =>
+    btn.addEventListener('click', () => excluir(btn.dataset.id)));
+}
+
+document.getElementById('lista-busca').addEventListener('input', renderLista);
+document.getElementById('lista-materia-filtro').addEventListener('change', renderLista);
+
+// ═══════════════════════════════════════════════
+// Modal Editar
+// ═══════════════════════════════════════════════
+
+function abrirModal(id) {
+  const erros = carregar();
+  const e = erros.find(x => x.id === id);
+  if (!e) return;
+
+  document.getElementById('edit-id').value = e.id;
+  document.getElementById('edit-materia').value = e.materia || '';
+  document.getElementById('edit-concurso').value = e.concurso || '';
+  document.getElementById('edit-enunciado').value = e.enunciado || '';
+  document.getElementById('edit-meu-erro').value = e.meu_erro || '';
+  document.getElementById('edit-gabarito').value = e.gabarito || '';
+  document.getElementById('edit-anotacoes').value = e.anotacoes || '';
+
+  document.getElementById('modal-overlay').classList.add('visible');
+}
+
+function fecharModal() {
+  document.getElementById('modal-overlay').classList.remove('visible');
+}
+
+document.getElementById('modal-close-btn').addEventListener('click', fecharModal);
+document.getElementById('modal-cancel-btn').addEventListener('click', fecharModal);
+document.getElementById('modal-overlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('modal-overlay')) fecharModal();
+});
+
+document.getElementById('modal-save-btn').addEventListener('click', () => {
+  const id = document.getElementById('edit-id').value;
+  const materia = document.getElementById('edit-materia').value.trim();
+  const meuErro = document.getElementById('edit-meu-erro').value.trim();
+  const gabarito = document.getElementById('edit-gabarito').value.trim();
+
+  if (!materia || !meuErro || !gabarito) {
+    showToast('Preencha os campos obrigatórios');
+    return;
+  }
+
+  const erros = carregar();
+  const idx = erros.findIndex(e => e.id === id);
+  if (idx !== -1) {
+    erros[idx] = {
+      ...erros[idx],
+      materia,
+      concurso: document.getElementById('edit-concurso').value.trim(),
+      enunciado: document.getElementById('edit-enunciado').value.trim(),
+      meu_erro: meuErro,
+      gabarito,
+      anotacoes: document.getElementById('edit-anotacoes').value.trim(),
+    };
+    salvar(erros);
+  }
+
+  fecharModal();
+  renderLista();
+  atualizarDatalist();
+  showToast('Erro atualizado!');
+});
+
+function excluir(id) {
+  if (!confirm('Excluir este erro permanentemente?')) return;
+  const erros = carregar().filter(e => e.id !== id);
+  salvar(erros);
+  renderLista();
+  atualizarBadge();
+  showToast('Erro excluído.');
+}
+
+// ═══════════════════════════════════════════════
+// Init
+// ═══════════════════════════════════════════════
+
+function init() {
+  renderDashboard();
+  atualizarDatalist();
+}
+
+init();
+</script>
+</body>
+</html>
